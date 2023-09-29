@@ -1,92 +1,66 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-using TMPro;
 
-public class PedestrianAgent : MonoBehaviour
+public class RobotAgent : MonoBehaviour
 {
-    private int id;
-    private Vector2 position;
-    private int agentNumber;
-    private int waypointID;
-    private bool selected = false;
-
+    private int id = -10;
     private GameObject controller;
     private EditModeSelector scpt_EM;
     private MapControl scpt_MC;
-    private Button pedestrianButton;
+    private Button robotButton;
     private RawImage circle;
+    private Vector2 position;
+    private bool selected = false;
     private Color32 selectedColor;
     private Color32 unselectColor;
-    
+    private int waypointID;
     // public AgentVector agentVector;
     public List<WaypointVector> waypointVectorList;
     //建構函數
-    public void Initialize(int id, Vector2 position, int agentNumber)
+    public void Initialize()
     {
-        this.position = position;
-        this.id = id;
-        this.agentNumber = agentNumber;
+        this.position = new Vector2(0,0);
         scpt_EM = GameObject.Find("Controller").GetComponent<EditModeSelector>();
         scpt_MC = GameObject.Find("Controller").GetComponent<MapControl>();
         // 添加按钮点击事件处理函数
         GameObject myGameObject = gameObject;
-        pedestrianButton = myGameObject.transform.Find("Button").GetComponent<Button>();
+        robotButton = myGameObject.transform.Find("Button").GetComponent<Button>();
         circle = myGameObject.transform.Find("circle").GetComponent<RawImage>();
         selectedColor = new Color32(0x52, 0xE7, 0xFF, 255);
         unselectColor = new Color32(0xD8, 0xD8, 0xD8, 255);
-        pedestrianButton.onClick.AddListener(PedestrianSelect);
+        robotButton.onClick.AddListener(RobotSelect);
         waypointVectorList = new List<WaypointVector>();
         waypointID = 0;
-        myGameObject.transform.Find("Text").GetComponent<TextMeshProUGUI>().text = $"x{agentNumber}";
     }
-
-    public void PedestrianSelect()
+    public void SetPosition(Vector2 pos){
+        this.position = pos;
+        for(int i = waypointVectorList.Count - 1; i >= 0; i--){
+            Destroy(waypointVectorList[i].arrowObj);
+            Destroy(waypointVectorList[i].obj);
+            waypointVectorList.RemoveAt(i);
+        }
+    }
+    // 销毁函数
+    public void RobotSelect()
     {
         
-        //findPedestrian
+        //findrobot
         if(scpt_EM.currentEditMode == editMode.Select){ 
             foreach(var ped in scpt_MC.PedestrainIDList){
                 ped.Value.GetComponent<PedestrianAgent>().SetToDefualt();
             }
-            scpt_MC.robotIcon.GetComponent<RobotAgent>().SetToDefualt();
+            SetToDefualt();
             if(selected == false && scpt_MC.hasAgentSelected == false){
                 circle.color = selectedColor;
                 selected = true;
-                // this.agentVector = agentVec;   
                 scpt_MC.hasAgentSelected = true;
                 scpt_MC.currentAgentID = id;
-                // scpt_MC.AgentVectorList.AgentSelected(agentVector);
             }
-            // else if(selected == true) {
-            //     circle.color = unselectColor;
-            //     selected = false;
-            //     scpt_MC.hasAgentSelected = false;
-            //     scpt_MC.currentAgentID = -1;
-            //         // scpt_MC.AgentVectorList.AgentUnselect(agentVector);
-                
-            // }
         }
           
     
-        //destroyPedestrian
-        if(scpt_EM.currentEditMode == editMode.Eraser){ 
-            for(int i = waypointVectorList.Count - 1; i >= 0; i--){
-                Destroy(waypointVectorList[i].arrowObj);
-                Destroy(waypointVectorList[i].obj);
-                waypointVectorList.RemoveAt(i);
-            }
-            if(selected){
-                scpt_MC.hasAgentSelected = false;
-            }
-            Destroy(this.gameObject); // 或者使用其他销毁方法，根据需求
-            if(scpt_MC.PedestrainIDList.ContainsKey(id)){
-                scpt_MC.PedestrainIDList.Remove(id);
-            }
-            else{UnityEngine.Debug.LogError("caanot find pedestrain in IDList.");}
-            // scpt_MC.AgentVectorList.DeleteAgentVector(agentVector); 
 
-        }
       
     }
     public void SetToDefualt(){

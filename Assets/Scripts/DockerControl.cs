@@ -31,7 +31,7 @@ public class DockerControl : MonoBehaviour
             
             //RunDockerPsCommand("tmux","kill-session -a");
             //RunDockerPsCommand("sleep","3");
-            string command = "source" + FileDirectory + " /auto_open.sh";
+            string command = "source " + FileDirectory + "/auto_open.sh";
 
             ProcessStartInfo psi = new ProcessStartInfo("/bin/bash", $"-c \"{command}\"");
             psi.RedirectStandardOutput = true;
