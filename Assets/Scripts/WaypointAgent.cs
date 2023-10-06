@@ -40,7 +40,6 @@ public class WaypointAgent : MonoBehaviour
         // scpt_MC.AgentVectorList.AddWaypoint(gameObject);
 
     }
-
     // 销毁函数
     public void WaypointDelete()
     {

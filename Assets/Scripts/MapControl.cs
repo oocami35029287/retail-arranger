@@ -4,22 +4,26 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.IO;
-
+using System.Xml;
+using System.Text.RegularExpressions;
 
 public class MapControl : MonoBehaviour
 {
-    public GameObject controller;
     public TextMeshProUGUI  MsgLog;
     private EditModeSelector scpt_EM;
+    private DockerControl scpt_DC;
+    private ConfigLoader scpt_cfg;
+
     public TMP_Dropdown mapDropdown; // 引用下拉菜单组件
+    public TMP_Dropdown sceneDropdown; 
     public RawImage mapImage; // 引用用于显示地图图片的Raw Image组件
     public GameObject Mask;
     private RectTransform mask; // Mask对象的RectTransform
-    private string FileDirectory = "/home/lab605/socially-store-robot";
-    private string mapsDirectory = "/mars_ws/src/navigation/turtlebot3_navigation/maps/"; // 地图图片存储的目录
-
+    private float mapResolution;
+    private Vector2 mapOrigin;
     private float zoomSpeed = 3.0f; // 缩放速度
     private List<string> mapItems;
+    private List<string> sceneItems;
     public Dictionary<int, GameObject> PedestrainIDList;
     private List<GameObject> wallLineList;
     public GameObject robotIconPrefab;
@@ -40,31 +44,55 @@ public class MapControl : MonoBehaviour
     private bool showMessage = false;
     private bool isDrawingWall = false;
     private GameObject currentWallLine;
+
+    public Button saveButton;
+    public Button clearButton;
     void Start(){
         
-        scpt_EM = controller.GetComponent<EditModeSelector>();
-        //dropdown dropdown = transform.GetComponent<Dropdown>();
-        mapDropdown.ClearOptions();;
-        mapItems = new List<string>();
-        mapItems.Add("crossing_corrider.jpg");
-        mapItems.Add("map.jpg");
+        scpt_EM = this.gameObject.GetComponent<EditModeSelector>();
+        scpt_DC = this.gameObject.GetComponent<DockerControl>();
+        scpt_cfg = this.gameObject.GetComponent<ConfigLoader>();
+
+        mask = Mask.GetComponent<RectTransform>();
+        PedestrainIDList = new Dictionary<int, GameObject>();
+        wallLineList = new List<GameObject>();
+        
+        //map 下拉選單
+        mapDropdown.ClearOptions();
+        mapItems = scpt_cfg.mapItems;
         List<TMP_Dropdown.OptionData> mapDropdownOptions = new List<TMP_Dropdown.OptionData>();
         foreach(string item in mapItems){
             mapDropdownOptions.Add(new TMP_Dropdown.OptionData(item));
         }
         mapDropdown.AddOptions(mapDropdownOptions);
-        // 添加下拉菜单选项的监听器，以在选项更改时加载相应的地图
         mapDropdown.onValueChanged.AddListener(MapSelected);
         mapDropdown.onValueChanged.Invoke(0);
-
-        mask = Mask.GetComponent<RectTransform>();
-        PedestrainIDList = new Dictionary<int, GameObject>();
-        wallLineList = new List<GameObject>();
+        
+        //scene 下拉選單
+        sceneDropdown.ClearOptions();
+        sceneItems = scpt_cfg.sceneItems;
+        List<TMP_Dropdown.OptionData> sceneDropdownOptions = new List<TMP_Dropdown.OptionData>();
+        foreach(string item in sceneItems){
+            sceneDropdownOptions.Add(new TMP_Dropdown.OptionData(item));
+        }
+        sceneDropdown.AddOptions(sceneDropdownOptions);
+        sceneDropdown.onValueChanged.AddListener(SceneSelected);
+        sceneDropdown.onValueChanged.Invoke(0);
+        
+        //////////
         //添加行人vector
         // AgentVectorList = new AgentVectorList();
         robotIcon = Instantiate(robotIconPrefab, mapImage.transform);
         robotIcon.transform.SetParent(mapImage.transform);
         robotIcon.GetComponent<RobotAgent>().Initialize();
+        //map的設置
+        mapResolution = 0.05f;
+        mapOrigin = Vector2.zero;
+
+        //button
+        saveButton.onClick.AddListener(SaveScene);
+        clearButton.onClick.AddListener(ClearScene);
+
     }
 
     private void Update(){
@@ -92,20 +120,196 @@ public class MapControl : MonoBehaviour
     }
     private void MapSelected(int value){
         // 根据下拉菜单选项的值加载对应的地图图片
-        string imagePath = FileDirectory + mapsDirectory + mapItems[value];
-
         // 加载图片并显示在Raw Image组件中
-        StartCoroutine(LoadMap(imagePath));
+        LoadMapYaml(mapItems[value]);
+        StartCoroutine(LoadMap(mapItems[value]));
+        scpt_cfg.curMapItem = mapItems[value];
+        scpt_cfg.LaunchUpdate();
     }
-    private IEnumerator LoadMap(string imagePath){
-        UnityEngine.Debug.Log(imagePath);
+    private void SceneSelected(int value){
+        scpt_cfg.curSceneItem = sceneItems[value];
+        scpt_cfg.LaunchUpdate();
+        LoadScene(sceneItems[value]);
+    }
+    private void LoadMapYaml(string mapYaml){
+        string yamlPath = scpt_cfg.FileDir + scpt_cfg.mapsDir + mapYaml+".yaml";  
+        //UnityEngine.Debug.Log(yamlPath);      
+        // 讀取map.yaml文件
+        if (File.Exists(yamlPath)){
+            string yamlText = File.ReadAllText(yamlPath);
+            //Debug.Log("File Content: " + yamlText);
+            
+            // 在这里继续处理文件内容
+            // 使用正則表達式提取resolution和origin的值
+            string resolutionPattern = @"resolution:\s+(\d+\.\d+)";
+            string originPattern = @"origin:\s+\[(-?\d+\.\d+),\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\]";
+
+
+            Match resolutionMatch = Regex.Match(yamlText, resolutionPattern);
+            if (resolutionMatch.Success)
+            {
+                mapResolution = float.Parse(resolutionMatch.Groups[1].Value);
+            }
+
+            Match originMatch = Regex.Match(yamlText, originPattern);
+            if (originMatch.Success)
+            {
+                float x = float.Parse(originMatch.Groups[1].Value);
+                float y = float.Parse(originMatch.Groups[2].Value);
+                float z = float.Parse(originMatch.Groups[3].Value);
+                mapOrigin = new Vector2(x, y);
+            }
+
+            // 在Unity的控制台中顯示解析結果
+            //UnityEngine.Debug.Log($"Resolution: {mapResolution}");
+            //UnityEngine.Debug.Log($"Origin: {mapOrigin}");
+        }
+        else{
+            Debug.LogError("File not found: " + yamlPath);
+        }
+
+        
+    }
+    private IEnumerator LoadMap(string map){
+        string imagePath = scpt_cfg.FileDir + scpt_cfg.mapsDir + map+".jpg";
+        //UnityEngine.Debug.Log(imagePath);
         // 使用Unity的WWW类加载图片
         WWW www = new WWW( "file://" + imagePath);
         yield return www;
 
         // 将加载的图片设置为Raw Image的纹理
         mapImage.texture = www.texture;
+        mapImage.rectTransform.sizeDelta = new Vector2(www.texture.width,www.texture.height);
+    }
+    private void LoadScene(string scene){
+        string scenePath = scpt_cfg.FileDir + scpt_cfg.sceneDir + scene+".xml";
+        if (File.Exists(scenePath)){
+            string sceneText = File.ReadAllText(scenePath);
+            // 加載XML文件
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(sceneText);
+            //Debug.Log(sceneText);
 
+            // 在这里继续处理文件内容
+            ClearScene();
+            // 提取obstacle元素的值
+            XmlNodeList obstacleNodes = xmlDoc.SelectNodes("//obstacle");
+            foreach (XmlNode obstacleNode in obstacleNodes)
+            {
+                float x1 = float.Parse(obstacleNode.Attributes["x1"].Value)/mapResolution;
+                float x2 = float.Parse(obstacleNode.Attributes["x2"].Value)/mapResolution;
+                float y1 = float.Parse(obstacleNode.Attributes["y1"].Value)/mapResolution;
+                float y2 = float.Parse(obstacleNode.Attributes["y2"].Value)/mapResolution;
+
+                //Debug.Log($"Obstacle: x1 = {x1}, x2 = {x2}, y1 = {y1}, y2 = {y2}");
+                GameObject wallLine = Instantiate(wallPrefab, mapImage.transform);
+                wallLine.transform.SetParent(mapImage.transform);
+                wallLine.GetComponent<WallController>().SetStartPoint(new Vector2(x1,y1));
+                wallLine.GetComponent<WallController>().SetEndPoint(new Vector2(x2,y2));
+                wallLineList.Add(wallLine);
+            }
+
+            // 提取waypoint元素的值
+            Dictionary<string, Vector2> waypoints = new Dictionary<string, Vector2>();
+            XmlNodeList waypointNodes = xmlDoc.SelectNodes("//waypoint");
+            foreach (XmlNode waypointNode in waypointNodes)
+            {
+                string id = waypointNode.Attributes["id"].Value;
+                float x = float.Parse(waypointNode.Attributes["x"].Value)/mapResolution;
+                float y = float.Parse(waypointNode.Attributes["y"].Value)/mapResolution;
+                
+                waypoints[id] = new Vector2(x, y);
+            }
+
+            // 提取agent元素的值
+            XmlNodeList agentNodes = xmlDoc.SelectNodes("//agent");
+            foreach (XmlNode agentNode in agentNodes)
+            {
+                float x = float.Parse(agentNode.Attributes["x"].Value)/mapResolution;
+                float y = float.Parse(agentNode.Attributes["y"].Value)/mapResolution;
+                Vector2 pedPosition = new Vector2(x,y);
+                int n = int.Parse(agentNode.Attributes["n"].Value);
+                int type = int.Parse(agentNode.Attributes["type"].Value);
+
+                // 创建 Human 图标并设置位置
+                if(type==0 && n!=0){
+                    GameObject humanIcon = Instantiate(humanIconPrefab, mapImage.transform);
+                    humanIcon.transform.SetParent(mapImage.transform);
+                    humanIcon.transform.localPosition = pedPosition;
+                    // 将PedestrianAgent脚本附加到humanIcon并初始化它
+                    PedestrianAgent pedestrianAgent = humanIcon.AddComponent<PedestrianAgent>();
+                    pedestrianAgent.Initialize( AgentCounter, pedPosition, n);
+                    PedestrainIDList.Add(AgentCounter,humanIcon);
+                    currentAgentID = AgentCounter;
+                    AgentCounter+=1;
+                }
+
+                
+                XmlNodeList addWaypointNodes = agentNode.SelectNodes("addwaypoint");
+                foreach (XmlNode addWaypointNode in addWaypointNodes)
+                {
+                    string waypointId = addWaypointNode.Attributes["id"].Value;
+                    if (waypoints.ContainsKey(waypointId))
+                    {
+                        Vector2 waypointPos = waypoints[waypointId];
+                        
+                        //找到前一個waypoint的位置
+                        Vector2 prevPos = new Vector2(0,0);
+                        GameObject AgentObj;
+                        bool AgentExists = PedestrainIDList.TryGetValue(currentAgentID, out AgentObj);
+                        if(AgentExists){
+                            prevPos = AgentObj.GetComponent<PedestrianAgent>().GetLastWaypointPos();
+                        }
+                        // 创建 waypoint 图标并设置位置
+                        GameObject waypointIcon = Instantiate(waypointPrefab, mapImage.transform);
+                        waypointIcon.transform.SetParent(mapImage.transform);
+                        waypointIcon.transform.localPosition = waypointPos;      
+                        WaypointAgent waypointAgent = waypointIcon.AddComponent<WaypointAgent>();             
+                        // 創建 arrow 圖標
+                        GameObject arrowIcon = Instantiate(arrowPrefab, mapImage.transform);
+                        arrowIcon.transform.SetParent(mapImage.transform);
+                        Vector2 arrowPos = prevPos + (waypointPos - prevPos)/2;
+                        arrowIcon.transform.localPosition = arrowPos;
+                        arrowIcon.GetComponent<ArrowController>().ChangeDirection(prevPos,waypointPos);    
+                        //生成路徑管理器
+                        waypointAgent.Initialize(WaypointCounter,waypointPos,arrowIcon);      
+                        
+                        WaypointCounter+=1;
+    
+                    }
+                }
+                currentAgentID = -1;
+              
+        }
+        }
+        else{
+            Debug.LogError("File not found: " + scenePath);
+        }
+
+    }
+    private void ClearScene(){
+        for (int i = wallLineList.Count - 1; i >= 0; i--)
+        {
+            Destroy(wallLineList[i]);
+            wallLineList.RemoveAt(i);
+        }
+        List<GameObject> PedestrainList = new List<GameObject>();
+        foreach (var ped in PedestrainIDList)
+        {
+            if(ped.Value!=null){
+                PedestrainList.Add(ped.Value);
+            }
+        }
+        for (int i = PedestrainList.Count - 1; i >= 0; i--)
+        {
+            PedestrainList[i].GetComponent<PedestrianAgent>().DeletePedestrian();
+        }
+        PedestrainIDList.Clear();
+
+
+    }
+    private void SaveScene(){
+        
     }
     private void ZoomImage(){
         if(RectTransformUtility.RectangleContainsScreenPoint
@@ -262,7 +466,7 @@ public class MapControl : MonoBehaviour
                         }
                         else{UnityEngine.Debug.LogError("cannot find prev pos");}
                         // 将PedestrianAgent脚本附加到humanIcon并初始化它
-                        //WaypointCounter+=1;
+                        WaypointCounter+=1;
                         //AgentVectorList.AddWaypointVector(localPoint, waypointIcon);
                     }
                     else{

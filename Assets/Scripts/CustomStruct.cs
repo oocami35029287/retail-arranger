@@ -1,8 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
+using YamlDotNet.Serialization;
 
-public class WaypointVector
-{
+
+
+
+public class WaypointVector{
     public int id;
     public GameObject obj;
     public GameObject arrowObj;
@@ -14,9 +18,8 @@ public class WaypointVector
     }
 }
 
-// 定义枚举类型
-public enum editMode
-{
+// 定义editMode枚举类型
+public enum editMode{
     None,
     Robot,
     Pedestrian,
@@ -27,11 +30,11 @@ public enum editMode
     Select
 }
 
-// AgentVectorList AgentVectorList = new AgentVectorList();
 
-// // 添加AgentVector
-// AgentVectorList.AddAgentVector(1, Vector2.zero, gameObject1);
-// AgentVectorList.AddAgentVector(2, new Vector2(1.0f, 2.0f, 3.0f), gameObject2);
+// LaunchItemUtility.LaunchItem[] launchItems = LaunchItemUtility.LaunchItems;
 
-// // 删除AgentVector
-// AgentVectorList.DeleteAgentVector(1); // 删除迭代器为1的AgentVector
+// // 访问数组的元素
+// LaunchItemUtility.LaunchItem firstItem = launchItems[0];
+// bool flag = firstItem.Flag;
+// string tool = firstItem.Tool;
+// string command = firstItem.Command;

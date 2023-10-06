@@ -71,23 +71,25 @@ public class PedestrianAgent : MonoBehaviour
     
         //destroyPedestrian
         if(scpt_EM.currentEditMode == editMode.Eraser){ 
-            for(int i = waypointVectorList.Count - 1; i >= 0; i--){
-                Destroy(waypointVectorList[i].arrowObj);
-                Destroy(waypointVectorList[i].obj);
-                waypointVectorList.RemoveAt(i);
-            }
-            if(selected){
-                scpt_MC.hasAgentSelected = false;
-            }
-            Destroy(this.gameObject); // 或者使用其他销毁方法，根据需求
-            if(scpt_MC.PedestrainIDList.ContainsKey(id)){
-                scpt_MC.PedestrainIDList.Remove(id);
-            }
-            else{UnityEngine.Debug.LogError("caanot find pedestrain in IDList.");}
-            // scpt_MC.AgentVectorList.DeleteAgentVector(agentVector); 
-
+            DeletePedestrian();    
         }
       
+    }
+    public void DeletePedestrian(){
+        for(int i = waypointVectorList.Count - 1; i >= 0; i--){
+            Destroy(waypointVectorList[i].arrowObj);
+            Destroy(waypointVectorList[i].obj);
+            waypointVectorList.RemoveAt(i);
+        }
+        if(selected){
+            scpt_MC.hasAgentSelected = false;
+        }
+        Destroy(this.gameObject); // 或者使用其他销毁方法，根据需求
+        if(scpt_MC.PedestrainIDList.ContainsKey(id)){
+            scpt_MC.PedestrainIDList.Remove(id);
+        }
+        else{UnityEngine.Debug.LogError("caanot find pedestrain in IDList.");}
+        // scpt_MC.AgentVectorList.DeleteAgentVector(agentVector); 
     }
     public void SetToDefualt(){
         circle.color = unselectColor;
