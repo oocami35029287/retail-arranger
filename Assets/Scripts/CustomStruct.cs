@@ -1,3 +1,7 @@
+/*
+ * Created by Yucheng Cheng.
+ * Date: 2023/10
+ */
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
@@ -31,10 +35,3 @@ public enum editMode{
 }
 
 
-// LaunchItemUtility.LaunchItem[] launchItems = LaunchItemUtility.LaunchItems;
-
-// // 访问数组的元素
-// LaunchItemUtility.LaunchItem firstItem = launchItems[0];
-// bool flag = firstItem.Flag;
-// string tool = firstItem.Tool;
-// string command = firstItem.Command;

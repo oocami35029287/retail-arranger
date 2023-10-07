@@ -10,7 +10,8 @@ public class RobotAgent : MonoBehaviour
     private MapControl scpt_MC;
     private Button robotButton;
     private RawImage circle;
-    private Vector2 position;
+    [System.NonSerialized]
+    public Vector2 position;
     private bool selected = false;
     private Color32 selectedColor;
     private Color32 unselectColor;

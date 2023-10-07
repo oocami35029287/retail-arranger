@@ -1,3 +1,7 @@
+/*
+ * Created by Yucheng Cheng.
+ * Date: 2023/10
+ */
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,24 +23,28 @@ public class MapControl : MonoBehaviour
     public RawImage mapImage; // 引用用于显示地图图片的Raw Image组件
     public GameObject Mask;
     private RectTransform mask; // Mask对象的RectTransform
-    private float mapResolution;
+    [System.NonSerialized]
+    public float mapResolution;
     private Vector2 mapOrigin;
     private float zoomSpeed = 3.0f; // 缩放速度
     private List<string> mapItems;
     private List<string> sceneItems;
     public Dictionary<int, GameObject> PedestrainIDList;
-    private List<GameObject> wallLineList;
+    public List<GameObject> wallLineList;
     public GameObject robotIconPrefab;
     public GameObject humanIconPrefab;
     public GameObject waypointPrefab;
     public GameObject arrowPrefab;
     public GameObject wallPrefab;
+    [System.NonSerialized]
     public GameObject robotIcon;
     private int AgentCounter=0;
+    [System.NonSerialized]
     public int currentAgentID = -1;//currentAgentID -1: 沒有 | -10:機器人 | >=0: 行人
     private int WaypointCounter=0;
     // public AgentVectorList AgentVectorList;
     private Vector3 mousePosition;
+    [System.NonSerialized]
     public bool hasAgentSelected = false; 
     //MSG計時器
     private float timer = 0f;
@@ -45,7 +53,6 @@ public class MapControl : MonoBehaviour
     private bool isDrawingWall = false;
     private GameObject currentWallLine;
 
-    public Button saveButton;
     public Button clearButton;
     void Start(){
         
@@ -56,7 +63,16 @@ public class MapControl : MonoBehaviour
         mask = Mask.GetComponent<RectTransform>();
         PedestrainIDList = new Dictionary<int, GameObject>();
         wallLineList = new List<GameObject>();
-        
+        //////////
+        //添加行人vector
+        // AgentVectorList = new AgentVectorList();
+        robotIcon = Instantiate(robotIconPrefab, mapImage.transform);
+        robotIcon.transform.SetParent(mapImage.transform);
+        robotIcon.GetComponent<RobotAgent>().Initialize();
+        //map的設置
+        mapResolution = 0.05f;
+        mapOrigin = Vector2.zero;
+
         //map 下拉選單
         mapDropdown.ClearOptions();
         mapItems = scpt_cfg.mapItems;
@@ -79,18 +95,9 @@ public class MapControl : MonoBehaviour
         sceneDropdown.onValueChanged.AddListener(SceneSelected);
         sceneDropdown.onValueChanged.Invoke(0);
         
-        //////////
-        //添加行人vector
-        // AgentVectorList = new AgentVectorList();
-        robotIcon = Instantiate(robotIconPrefab, mapImage.transform);
-        robotIcon.transform.SetParent(mapImage.transform);
-        robotIcon.GetComponent<RobotAgent>().Initialize();
-        //map的設置
-        mapResolution = 0.05f;
-        mapOrigin = Vector2.zero;
+
 
         //button
-        saveButton.onClick.AddListener(SaveScene);
         clearButton.onClick.AddListener(ClearScene);
 
     }
@@ -112,6 +119,16 @@ public class MapControl : MonoBehaviour
             }
         }
 
+    }
+    public void RefreshSceneOption(){
+        scpt_cfg.LoadScene();
+        sceneDropdown.ClearOptions();
+        sceneItems = scpt_cfg.sceneItems;
+        List<TMP_Dropdown.OptionData> sceneDropdownOptions = new List<TMP_Dropdown.OptionData>();
+        foreach(string item in sceneItems){
+            sceneDropdownOptions.Add(new TMP_Dropdown.OptionData(item));
+        }
+        sceneDropdown.AddOptions(sceneDropdownOptions);
     }    
     public void ShowMsgLog(string message){
         MsgLog.text = message;
@@ -171,7 +188,7 @@ public class MapControl : MonoBehaviour
         
     }
     private IEnumerator LoadMap(string map){
-        string imagePath = scpt_cfg.FileDir + scpt_cfg.mapsDir + map+".jpg";
+        string imagePath = scpt_cfg.showMaps + map+".jpg";
         //UnityEngine.Debug.Log(imagePath);
         // 使用Unity的WWW类加载图片
         WWW www = new WWW( "file://" + imagePath);
@@ -208,6 +225,12 @@ public class MapControl : MonoBehaviour
                 wallLine.GetComponent<WallController>().SetEndPoint(new Vector2(x2,y2));
                 wallLineList.Add(wallLine);
             }
+            // // 提取robot元素的值
+            // XmlNodeList waypointNodes = xmlDoc.SelectNodes("//waypoint");
+            // string id = waypointNode.Attributes["id"].Value;
+            // float x = float.Parse(waypointNode.Attributes["x"].Value)/mapResolution;
+            // float y = float.Parse(waypointNode.Attributes["y"].Value)/mapResolution;
+                
 
             // 提取waypoint元素的值
             Dictionary<string, Vector2> waypoints = new Dictionary<string, Vector2>();
@@ -230,7 +253,11 @@ public class MapControl : MonoBehaviour
                 Vector2 pedPosition = new Vector2(x,y);
                 int n = int.Parse(agentNode.Attributes["n"].Value);
                 int type = int.Parse(agentNode.Attributes["type"].Value);
-
+                // 更改robot 位置
+                if(type==2){
+                    robotIcon.transform.localPosition = pedPosition;
+                    robotIcon.GetComponent<RobotAgent>().position = pedPosition;
+                }
                 // 创建 Human 图标并设置位置
                 if(type==0 && n!=0){
                     GameObject humanIcon = Instantiate(humanIconPrefab, mapImage.transform);
@@ -308,9 +335,7 @@ public class MapControl : MonoBehaviour
 
 
     }
-    private void SaveScene(){
-        
-    }
+
     private void ZoomImage(){
         if(RectTransformUtility.RectangleContainsScreenPoint
         (mask, Input.mousePosition)){

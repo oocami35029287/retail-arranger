@@ -56,7 +56,7 @@ public class WaypointAgent : MonoBehaviour
             int destroyNum = 0;
             bool destroyFlag = false;
 
-            UnityEngine.Debug.Log("123");
+            //UnityEngine.Debug.Log("123");
             for (int i = waypointVectorList.Count - 1; i >= 0; i--)
             {
                 if (waypointVectorList[i].id == id)

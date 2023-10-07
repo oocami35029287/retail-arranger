@@ -1,3 +1,7 @@
+/*
+ * Created by Yucheng Cheng.
+ * Date: 2023/10
+ */
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -8,20 +12,43 @@ public class ConfigLoader : MonoBehaviour
     // 定義配置文件的數據結構
     private MapControl scpt_MC;
     //for launch files
+    [System.NonSerialized]
     public Dictionary<string, LaunchItem> LaunchItems;
+    [System.NonSerialized]
     public List<LaunchItem> LaunchItemsForRun; 
-    public string curSceneItem = "crossing_corridor";
-    public string curMapItem = "crossing_corridor";
+    [System.NonSerialized]
+    public string curSceneItem;
+    [System.NonSerialized]
+    public string curMapItem;
 
     //for paths
+    [System.NonSerialized]
     public string FileDir;
+    [System.NonSerialized]
     public string mapsDir;
+    [System.NonSerialized]
     public string sceneDir;
-    public string ContainerName;
+    [System.NonSerialized]
+    public string showMaps;
     //for found maps files 
+    [System.NonSerialized]
     public List<string> mapItems;
+    [System.NonSerialized]
     public List<string> sceneItems;
+    //for docker 
+    [System.NonSerialized]
+    public bool dockerEnable;
+    [System.NonSerialized]
+    public string ContainerName;
+    [System.NonSerialized]
+    public string dockerRunCmd;
+    [System.NonSerialized]
+    public string dockerExecCmd;
+    //for resize
+    [System.NonSerialized]
+    public List<WindowAlignment> alignWindows;
 
+    [System.Serializable]
     public class LaunchItem
     {
         public bool Enabled { get; set; }
@@ -29,20 +56,39 @@ public class ConfigLoader : MonoBehaviour
         public string Workspace { get; set; }
         public string Command { get; set; }
     }
-
+    [System.Serializable]
+    public class DockerConfig
+    {
+        public bool Enabled { get; set; }
+        public string ContainerName { get; set; }
+        public string RunCmd { get; set; }
+        public string ExecCmd { get; set; }
+    }
+    [System.Serializable]
+    public class WindowAlignment
+    {
+        public string Name { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+    [System.Serializable]
     public class ConfigData
     {
-        public Dictionary<string, LaunchItem> LaunchItems { get; set; }
         public string FileDir { get; set; }
         public string mapsDir { get; set; }
         public string sceneDir { get; set; }
-        public string ContainerName { get; set; }
+        public DockerConfig Docker { get; set; }
+        public List<WindowAlignment> AlignWindows { get; set; }
+        public Dictionary<string, LaunchItem> LaunchItems { get; set; }
     }
 
     //start
     void Start(){
         scpt_MC = this.gameObject.GetComponent<MapControl>();
         LaunchItemsForRun = new List<LaunchItem>() ; 
+        showMaps = Application.dataPath + "/config/maps/";
         LoadConfig();
         LoadMap();
         LoadScene();
@@ -66,16 +112,23 @@ public class ConfigLoader : MonoBehaviour
             var configData = deserializer.Deserialize<ConfigData>(yamlContent);
 
             // 更新相應的變數
-            LaunchItems = configData.LaunchItems;
             FileDir = configData.FileDir;
             mapsDir = configData.mapsDir;
             sceneDir = configData.sceneDir;
-            ContainerName = configData.ContainerName;
             scpt_MC.ShowMsgLog(ContainerName);
-            // foreach(var LaunchItem in LaunchItems){
-            //     Debug.Log(LaunchItem.Value.Command);
+            //docker
+            dockerEnable = configData.Docker.Enabled;
+            ContainerName = configData.Docker.ContainerName;
+            dockerRunCmd = configData.Docker.RunCmd;
+            dockerExecCmd = configData.Docker.ExecCmd;
+            //for resize
+            alignWindows = configData.AlignWindows;
+            //for launcher
+            LaunchItems = configData.LaunchItems;
+            // foreach(var LaunchItem in alignWindows){
+            //     Debug.Log(LaunchItem.Name);
             // }
-            // Debug.Log(FileDir);
+            // Debug.Log(ContainerName);
             // Debug.Log(mapsDir);
             // Debug.Log(sceneDir);
             // Debug.Log(ContainerName);
@@ -100,14 +153,14 @@ public class ConfigLoader : MonoBehaviour
                         Workspace = itm.Workspace,
                         Command = cmd
                     });
-                Debug.Log(itm.Command+"\n"+cmd);
+                //Debug.Log(itm.Command+"\n"+cmd);
             }
         }
     }
     private void LoadMap(){   
         mapItems = new List<string>();
         // 檢查資料夾是否存在
-        string folderPath = FileDir+mapsDir;
+        string folderPath = showMaps;
         if (Directory.Exists(folderPath))
         {
             // 獲取所有 .jpg 文件
@@ -126,7 +179,7 @@ public class ConfigLoader : MonoBehaviour
         }
 
     }
-    private void LoadScene(){
+    public void LoadScene(){
         sceneItems = new List<string>();
         // 檢查資料夾是否存在
         string folderPath = FileDir+sceneDir;

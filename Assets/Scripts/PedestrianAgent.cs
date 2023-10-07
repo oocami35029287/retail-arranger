@@ -5,9 +5,9 @@ using TMPro;
 
 public class PedestrianAgent : MonoBehaviour
 {
-    private int id;
-    private Vector2 position;
-    private int agentNumber;
+    public int id;
+    public Vector2 position;
+    public int agentNumber;
     private int waypointID;
     private bool selected = false;
 

@@ -1,3 +1,7 @@
+/*
+ * Created by Yucheng Cheng.
+ * Date: 2023/10
+ */
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,20 +18,29 @@ public class DockerControl : MonoBehaviour
 
     public Button startButton; 
     public Button stopButton; 
+    public Button closeButton; 
     public Button unpauseButton;
     public Button rearrangeWinButton;
-
-    public bool isStart = false;
-    private int sessionNum =1;
-    private bool setAlignSessionNum = false;
-    private int alignSessionNum;
-    private bool setUnpauseSessionNum = false;
-    private int unpauseSessionNum;
-    private bool unpauseFlg = false;
-  
     public GameObject checkboxPrefab; // 复选框的预制体
     public Transform contentPanel; // 垂直滚动视图的内容面板
+
+
+    private int sessionNum =1;
+    private bool alignSessionNumFlg = false;
+    private int alignSessionNum;
+    private bool unpauseSessionNumFlg = false;
+    private int unpauseSessionNum;
+    private bool unpauseFlg = false;
+    private bool closeFlg = false;
+
+    
+
     private string[] stringArray; // 存储字符串的数组     
+    [System.NonSerialized]
+    public bool isStart = false;
+    private bool dockerEnable;
+    private string dockerRunCmd;
+    private string dockerExecCmd;
 
     void Start()
     {
@@ -35,12 +48,26 @@ public class DockerControl : MonoBehaviour
         // 添加按鈕點擊事件
         startButton.onClick.AddListener(StartDocker);
         stopButton.onClick.AddListener(StopDocker);   
+        closeButton.onClick.AddListener(CloseAllProcess);   
         unpauseButton.onClick.AddListener(UnpausePedestrian);   
         rearrangeWinButton.onClick.AddListener(RunAlign);   
         CheckBoxInit();
+        dockerEnable = scpt_cfg.dockerEnable;
+        dockerRunCmd = scpt_cfg.dockerRunCmd;
+        dockerExecCmd = scpt_cfg.dockerExecCmd;
     }
 
     private void CheckBoxInit(){
+
+        int itemCount = scpt_cfg.LaunchItems.Count;
+        float newHeight = 30f * itemCount;
+        // 获取contentPanel的RectTransform
+        RectTransform contentPanelRectTransform = contentPanel.parent.GetComponent<RectTransform>();
+        // 创建一个新的Vector2，并将其分配给sizeDelta属性
+        Vector2 newSizeDelta = contentPanelRectTransform.sizeDelta;
+        newSizeDelta.y = newHeight;
+        contentPanelRectTransform.sizeDelta = newSizeDelta;
+
         // 根据字符串数组的长度创建复选框
         foreach (var launchFile in scpt_cfg.LaunchItems)
         {
@@ -83,14 +110,17 @@ public class DockerControl : MonoBehaviour
     private void UnpausePedestrian(){
         string unpause = "rosservice call /pedsim_simulator/unpause_simulation \\\"{}\\\"";  
         string pause = "rosservice call /pedsim_simulator/pause_simulation \\\"{}\\\"";  
-        if(!setUnpauseSessionNum){
+        if(!unpauseSessionNumFlg){
             unpauseSessionNum = sessionNum;
-            setUnpauseSessionNum = true;
             sessionNum+=1;
         }
-        RunDockerPsCommand("tmux",$"new-session -d -s session{unpauseSessionNum}");
-        RunDockerPsCommand("tmux",$"send-keys -t session{unpauseSessionNum} \" cd {scpt_cfg.FileDir}\" C-m ");
-        RunDockerPsCommand("tmux",$"send-keys -t session{unpauseSessionNum} \" source run_docker.sh same\" C-m ");
+        if(!closeFlg && !unpauseSessionNumFlg){
+            RunDockerPsCommand("tmux",$"new-session -d -s session{unpauseSessionNum}");
+            RunDockerPsCommand("tmux",$"send-keys -t session{unpauseSessionNum} \" cd {scpt_cfg.FileDir}\" C-m ");
+            if(dockerEnable){
+                RunDockerPsCommand("tmux",$"send-keys -t session{unpauseSessionNum} \" {AccessDocker()}\" C-m ");
+            }
+        }
         if(!unpauseFlg){
             RunDockerPsCommand("tmux",$"send-keys -t session{unpauseSessionNum} \" {unpause} \" C-m ");
             unpauseButton.transform.Find("Text").GetComponent<TextMeshProUGUI>().text = "Pause\nPedestrain";
@@ -101,45 +131,44 @@ public class DockerControl : MonoBehaviour
             unpauseButton.transform.Find("Text").GetComponent<TextMeshProUGUI>().text = "Unpause\nPedestrain";
             unpauseFlg = false;
         }
+        if(!unpauseSessionNumFlg){unpauseSessionNumFlg = true;}
 
     }
     private void RunAlign(){
-        if(!setAlignSessionNum){
+        if(!alignSessionNumFlg){
             alignSessionNum = sessionNum;
-            setAlignSessionNum = true;
             sessionNum+=1;
         }
-        RunDockerPsCommand("tmux",$"new-session -d -s session{alignSessionNum}");
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" cd {scpt_cfg.FileDir}\" C-m ");
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" source run_docker.sh same\" C-m ");
-
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"Gazebo\\\" -b remove,maximized_vert,maximized_horz\" C-m       ");  
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"Gazebo\\\" -e 0,960,0,960,1080\" C-m                           ");
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"Rviz\\\" -b remove,maximized_vert,maximized_horz\" C-m         ");  
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"Rviz\\\" -e 0,0,540,960,540\" C-m                              ");  
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"Yolo demo\\\" -b remove,maximized_vert,maximized_horz\" C-m    ");      
-        RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"Yolo demo\\\" -e 0,0,0,0,960,540\" C-m                         ");  
-
+        if(!closeFlg && !alignSessionNumFlg){
+            RunDockerPsCommand("tmux",$"new-session -d -s session{alignSessionNum}");
+            RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" cd {scpt_cfg.FileDir}\" C-m ");
+            if(dockerEnable){
+                RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" {AccessDocker()}\" C-m ");
+            }    
+        }
+        
+        foreach(var item in scpt_cfg.alignWindows){ 
+            RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"{item.Name}\\\" -b remove,maximized_vert,maximized_horz\" C-m    ");      
+            RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \"wmctrl -r \\\"{item.Name}\\\" -e 0,{item.X},{item.Y},{item.Width},{item.Height}\" C-m                         ");  
+        }
+        if(!alignSessionNumFlg){alignSessionNumFlg = true;}
     }
     private void RunCmd(int delay, string ws,string arg){
         RunDockerPsCommand("sleep",$"{delay}");
-        RunDockerPsCommand("tmux",$"new-session -d -s session{sessionNum}");
-        
-        RunDockerPsCommand("tmux",$"send-keys -t session{sessionNum} \" cd {scpt_cfg.FileDir}\" C-m ");
-        string arg2;
-        if (sessionNum==1){
-            arg2 = "cuda10";
+        if(!closeFlg){
+            RunDockerPsCommand("tmux",$"new-session -d -s session{sessionNum}");
+            RunDockerPsCommand("tmux",$"send-keys -t session{sessionNum} \" cd {scpt_cfg.FileDir}\" C-m ");
+            if(dockerEnable){
+                RunDockerPsCommand("tmux",$"send-keys -t session{sessionNum} \" {AccessDocker()}\" C-m ");
+            }
         }
-        else arg2 = "same";
-        RunDockerPsCommand("tmux",$"send-keys -t session{sessionNum} \" source run_docker.sh {arg2}\" C-m ");
         RunDockerPsCommand("tmux",$"send-keys -t session{sessionNum} \" source {ws}/devel/setup.bash \" C-m ");
         RunDockerPsCommand("tmux",$"send-keys -t session{sessionNum} \" {arg} \" C-m ");
         sessionNum+=1;
     }
     private void StopDocker()
     {
-        isStart = false;
-        startButton.image.color = Color.white;
+
 
         // 运行 `docker ps` 命令并捕获输出
         RunDockerPsCommand("tmux","kill-session -a");
@@ -161,13 +190,32 @@ public class DockerControl : MonoBehaviour
                     RunDockerPsCommand("docker", $"kill {containerId}");
             }
         }
+        isStart = false;
+        startButton.image.color = Color.white;
         sessionNum=1;
-        setAlignSessionNum = false;
-        setUnpauseSessionNum = false;
+        alignSessionNumFlg = false;
+        unpauseSessionNumFlg = false;
         unpauseFlg = false;
-
+        closeFlg = false;
     }
+    private void CloseAllProcess()
+    {
 
+        if(alignSessionNumFlg){
+            RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" killall gzserver gzclient\" C-m ");
+            RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" pkill roslaunch\" C-m ");
+            RunDockerPsCommand("tmux",$"send-keys -t session{alignSessionNum} \" pkill rosrun\" C-m ");
+        }
+
+        
+        closeFlg = true;
+        isStart = false;
+        startButton.image.color = Color.white;
+        sessionNum=1;
+        alignSessionNumFlg = false;
+        unpauseSessionNumFlg = false;
+        unpauseFlg = false;
+    }
     private string RunDockerPsCommand(string cmd, string arg)
     {
         Process process = new Process();
@@ -187,8 +235,14 @@ public class DockerControl : MonoBehaviour
 
         return output;
     }
+    private string AccessDocker(){
+        if (sessionNum==1){
+            return dockerRunCmd;
+        }
+        else return dockerExecCmd;
+    }
     private void OpenByShell(){
-
+            
             string command = "source " + scpt_cfg.FileDir + "/auto_open.sh";
 
             ProcessStartInfo psi = new ProcessStartInfo("/bin/bash", $"-c \"{command}\"");
