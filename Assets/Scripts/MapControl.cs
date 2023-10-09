@@ -36,6 +36,7 @@ public class MapControl : MonoBehaviour
     public GameObject waypointPrefab;
     public GameObject arrowPrefab;
     public GameObject wallPrefab;
+    public TMP_InputField inputField;
     [System.NonSerialized]
     public GameObject robotIcon;
     private int AgentCounter=0;
@@ -94,7 +95,8 @@ public class MapControl : MonoBehaviour
         sceneDropdown.AddOptions(sceneDropdownOptions);
         sceneDropdown.onValueChanged.AddListener(SceneSelected);
         sceneDropdown.onValueChanged.Invoke(0);
-        
+        //input field
+        inputField.onSubmit.AddListener(RotateRobot);
 
 
         //button
@@ -257,6 +259,7 @@ public class MapControl : MonoBehaviour
                 if(type==2){
                     robotIcon.transform.localPosition = pedPosition;
                     robotIcon.GetComponent<RobotAgent>().position = pedPosition;
+                    robotIcon.GetComponent<RobotAgent>().SetPosition(pedPosition);
                 }
                 // 创建 Human 图标并设置位置
                 if(type==0 && n!=0){
@@ -411,6 +414,25 @@ public class MapControl : MonoBehaviour
                     AgentCounter+=1;
                 }
             }
+        }
+    }
+    private void RotateRobot(string inputText){
+        // 在这里处理输入文本
+        float floatValue;
+        if (float.TryParse(inputText, out floatValue)){
+            // Conversion was successful
+            while(floatValue<0){
+                floatValue+=720;
+            }
+            floatValue = floatValue%360;
+            robotIcon.GetComponent<RobotAgent>().SetRotation(floatValue);
+            //inputField.textComponent.text = floatValue.ToString("F0");
+
+            Debug.Log("输入文本：" + floatValue);
+        }
+        else{
+            // Conversion failed, handle the error
+            Debug.LogError("Failed to convert input text to float.");
         }
     }
     private void MoveRobot(){

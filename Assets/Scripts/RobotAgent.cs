@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-
 public class RobotAgent : MonoBehaviour
 {
     private int id = -10;
@@ -12,18 +11,29 @@ public class RobotAgent : MonoBehaviour
     private RawImage circle;
     [System.NonSerialized]
     public Vector2 position;
+    private float rotate;
     private bool selected = false;
     private Color32 selectedColor;
     private Color32 unselectColor;
     private int waypointID;
+    private ConfigLoader scpt_cfg;
     // public AgentVector agentVector;
     public List<WaypointVector> waypointVectorList;
     //建構函數
     public void Initialize()
     {
-        this.position = new Vector2(0,0);
+        
+        
         scpt_EM = GameObject.Find("Controller").GetComponent<EditModeSelector>();
         scpt_MC = GameObject.Find("Controller").GetComponent<MapControl>();
+        scpt_cfg = GameObject.Find("Controller").GetComponent<ConfigLoader>();
+        //位置
+        this.position = new Vector2(0,0);
+        this.rotate = 0;
+        scpt_cfg.robot_x = (position.x*scpt_MC.mapResolution).ToString();
+        scpt_cfg.robot_y = (position.y*scpt_MC.mapResolution).ToString();
+        scpt_cfg.robot_rot = (rotate* Mathf.Deg2Rad).ToString();
+        scpt_cfg.LaunchUpdate();
         // 添加按钮点击事件处理函数
         GameObject myGameObject = gameObject;
         robotButton = myGameObject.transform.Find("Button").GetComponent<Button>();
@@ -33,9 +43,20 @@ public class RobotAgent : MonoBehaviour
         robotButton.onClick.AddListener(RobotSelect);
         waypointVectorList = new List<WaypointVector>();
         waypointID = 0;
+
+    }
+    public void SetRotation(float floatValue){
+        rotate = floatValue;
+        scpt_cfg.robot_rot = (rotate* Mathf.Deg2Rad).ToString();
+        scpt_cfg.LaunchUpdate();
+        Vector3 newRotation = new Vector3(60, 0, floatValue);
+        this.gameObject.transform.Find("rotate").GetComponent<RectTransform>().eulerAngles = newRotation;
     }
     public void SetPosition(Vector2 pos){
         this.position = pos;
+        scpt_cfg.robot_x = (position.x*scpt_MC.mapResolution).ToString();
+        scpt_cfg.robot_y = (position.y*scpt_MC.mapResolution).ToString();
+        scpt_cfg.LaunchUpdate();
         for(int i = waypointVectorList.Count - 1; i >= 0; i--){
             Destroy(waypointVectorList[i].arrowObj);
             Destroy(waypointVectorList[i].obj);

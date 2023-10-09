@@ -12,12 +12,13 @@ Docker:
 #The launch file you want to launch in order
 # {curSceneItem} is used for rviz visualize scenes.
 # {curMapItem} is used for gazebo scenes.
+# {robot_x}, {robot_y}, {robot_rot} is for robot
 LaunchItems:
   rviz:
     Enabled: true
     Delay: 0
     Workspace: mars_ws
-    Command: roslaunch pedsim_simulator gym_crowd_environment.launch scene_file:={curSceneItem}.xml
+    Command: roslaunch pedsim_simulator gym_crowd_environment.launch scene_file:={curSceneItem}.xml 
   gazebo:
     Enabled: true
     Delay: 3
@@ -27,7 +28,17 @@ LaunchItems:
     Enabled: true
     Delay: 2
     Workspace: mars_ws
-    Command: roslaunch mars_lite_description spawn_mars.launch
+    Command: roslaunch mars_lite_description spawn_mars.launch robot_init_x:={robot_x} robot_init_y:={robot_y} robot_init_rot:={robot_rot}
+  globalmap:
+    Enabled: true
+    Delay: 2
+    Workspace: mars_ws
+    Command: roslaunch turtlebot3_navigation globalmap.launch map_file:={curMapItem}.yaml
+  init_robot:
+    Enabled: true
+    Delay: 0
+    Workspace: mars_ws
+    Command: roslaunch mars_lite_description init_pose.launch robot_init_x:={robot_x} robot_init_y:={robot_y} robot_init_rot:={robot_rot}
   yolo:
     Enabled: true
     Delay: 1
@@ -43,11 +54,7 @@ LaunchItems:
     Delay: 0
     Workspace: yolo_ws
     Command: roslaunch path_tracking path_tracking_autonomous.launch
-  globalmap:
-    Enabled: true
-    Delay: 0
-    Workspace: mars_ws
-    Command: roslaunch turtlebot3_navigation globalmap.launch map_file:={curMapItem}.yaml
+
 
 ######################
 AlignWindows:
@@ -66,3 +73,4 @@ AlignWindows:
     Y: 0
     Width: 960
     Height: 540
+

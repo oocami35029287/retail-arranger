@@ -20,6 +20,12 @@ public class ConfigLoader : MonoBehaviour
     public string curSceneItem;
     [System.NonSerialized]
     public string curMapItem;
+    [System.NonSerialized]
+    public string robot_x;
+    [System.NonSerialized]
+    public string robot_y;
+    [System.NonSerialized]
+    public string robot_rot;
 
     //for paths
     [System.NonSerialized]
@@ -146,6 +152,9 @@ public class ConfigLoader : MonoBehaviour
             if(itm.Enabled){
                 cmd = itm.Command.Replace("{curMapItem}", curMapItem);   
                 cmd = cmd.Replace("{curSceneItem}", curSceneItem);   
+                cmd = cmd.Replace("{robot_x}", robot_x);   
+                cmd = cmd.Replace("{robot_y}", robot_y);   
+                cmd = cmd.Replace("{robot_rot}", robot_rot);   
                 LaunchItemsForRun.Add(new LaunchItem
                     {
                         Enabled = itm.Enabled,
