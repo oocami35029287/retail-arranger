@@ -1,3 +1,7 @@
+/*
+ * Created by Yucheng Cheng.
+ * Date: 2023/10
+ */
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
@@ -11,7 +15,7 @@ public class RobotAgent : MonoBehaviour
     private RawImage circle;
     [System.NonSerialized]
     public Vector2 position;
-    private float rotate;
+    public float rotate; //degree
     private bool selected = false;
     private Color32 selectedColor;
     private Color32 unselectColor;

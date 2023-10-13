@@ -227,12 +227,6 @@ public class MapControl : MonoBehaviour
                 wallLine.GetComponent<WallController>().SetEndPoint(new Vector2(x2,y2));
                 wallLineList.Add(wallLine);
             }
-            // // 提取robot元素的值
-            // XmlNodeList waypointNodes = xmlDoc.SelectNodes("//waypoint");
-            // string id = waypointNode.Attributes["id"].Value;
-            // float x = float.Parse(waypointNode.Attributes["x"].Value)/mapResolution;
-            // float y = float.Parse(waypointNode.Attributes["y"].Value)/mapResolution;
-                
 
             // 提取waypoint元素的值
             Dictionary<string, Vector2> waypoints = new Dictionary<string, Vector2>();
@@ -258,8 +252,13 @@ public class MapControl : MonoBehaviour
                 // 更改robot 位置
                 if(type==2){
                     robotIcon.transform.localPosition = pedPosition;
-                    robotIcon.GetComponent<RobotAgent>().position = pedPosition;
+                    //robotIcon.GetComponent<RobotAgent>().position = pedPosition;
                     robotIcon.GetComponent<RobotAgent>().SetPosition(pedPosition);
+                    string rValue = agentNode.Attributes["r"]?.Value; 
+                    if(rValue != null && float.TryParse(rValue, out float rotate)){
+                        robotIcon.GetComponent<RobotAgent>().SetRotation(rotate*Mathf.Rad2Deg);
+                    }
+                    else{robotIcon.GetComponent<RobotAgent>().SetRotation(0);}
                 }
                 // 创建 Human 图标并设置位置
                 if(type==0 && n!=0){

@@ -236,10 +236,20 @@ public class DockerControl : MonoBehaviour
         return output;
     }
     private string AccessDocker(){
-        if (sessionNum==1){
-            return dockerRunCmd;
+        string dockerPsOutput = RunDockerPsCommand("docker","ps");
+
+        // 解析输出以获取CONTAINER ID和IMAGE信息
+        string[] lines = dockerPsOutput.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string line in lines)
+        {
+            if (line.Contains(scpt_cfg.ContainerName))
+            {
+                return dockerExecCmd;
+            }
         }
-        else return dockerExecCmd;
+
+        return dockerRunCmd;
+ 
     }
     private void OpenByShell(){
             

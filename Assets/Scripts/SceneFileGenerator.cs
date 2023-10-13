@@ -1,3 +1,7 @@
+/*
+ * Created by Yucheng Cheng.
+ * Date: 2023/10
+ */
 using System.Collections.Generic;
 using System.Xml;
 using UnityEngine;
@@ -121,6 +125,7 @@ public class SceneFileGenerator : MonoBehaviour
         XmlElement agentElement = xmlDoc.CreateElement("agent");
         agentElement.SetAttribute("x", (scpt_robot.position.x*scpt_MC.mapResolution).ToString("F2"));
         agentElement.SetAttribute("y", (scpt_robot.position.y*scpt_MC.mapResolution).ToString("F2"));
+        agentElement.SetAttribute("r", (scpt_robot.rotate*Mathf.Deg2Rad).ToString("F6"));
         agentElement.SetAttribute("n", "1");
         agentElement.SetAttribute("dx", "0");
         agentElement.SetAttribute("dy", "0");

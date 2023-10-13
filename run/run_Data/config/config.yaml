@@ -34,7 +34,7 @@ LaunchItems:
     Delay: 2
     Workspace: mars_ws
     Command: roslaunch turtlebot3_navigation globalmap.launch map_file:={curMapItem}.yaml
-  init_robot:
+  initRobotInRviz:
     Enabled: true
     Delay: 0
     Workspace: mars_ws
@@ -44,16 +44,17 @@ LaunchItems:
     Delay: 1
     Workspace: yolo_ws
     Command: roslaunch scan yolodetect.launch
-  path_finding:
+  nav(move_base):
+    Enabled: false
+    Delay: 2
+    Workspace: mars_ws
+    Command: roslaunch turtlebot3_navigation move_base.launch
+  nav(social):
     Enabled: true
-    Delay: 0
+    Delay: 10
     Workspace: yolo_ws
-    Command: roslaunch path_finding astar_path_finding_with_social_proxemics.launch
-  path_tracking:
-    Enabled: true
-    Delay: 0
-    Workspace: yolo_ws
-    Command: roslaunch path_tracking path_tracking_autonomous.launch
+    Command: roslaunch path_finding socially_navigation.launch
+
 
 
 ######################

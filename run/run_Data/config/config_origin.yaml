@@ -39,22 +39,26 @@ LaunchItems:
     Delay: 0
     Workspace: mars_ws
     Command: roslaunch mars_lite_description init_pose.launch robot_init_x:={robot_x} robot_init_y:={robot_y} robot_init_rot:={robot_rot}
+  nav(move_base):
+    Enabled: false
+    Delay: 2
+    Workspace: mars_ws
+    Command: roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:={curMapItem}.yaml
   yolo:
     Enabled: true
     Delay: 1
     Workspace: yolo_ws
     Command: roslaunch scan yolodetect.launch
-  nav(move_base):
-    Enabled: false
-    Delay: 2
-    Workspace: mars_ws
-    Command: roslaunch turtlebot3_navigation move_base.launch
-  nav(social):
+  path_finding:
     Enabled: true
     Delay: 10
     Workspace: yolo_ws
-    Command: roslaunch path_finding socially_navigation.launch
-
+    Command: roslaunch path_finding astar_path_finding_with_globalmap.launch
+  path_tracking:
+    Enabled: true
+    Delay: 0
+    Workspace: yolo_ws
+    Command: roslaunch path_tracking path_tracking_autonomous.launch
 
 
 ######################
