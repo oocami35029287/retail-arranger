@@ -1,0 +1,80 @@
+#Some important paths
+FileDir: /home/lab605/socially-store-robot
+mapsDir: /mars_ws/src/navigation/turtlebot3_navigation/maps/
+sceneDir: /mars_ws/src/pedsim_ros/pedsim_simulator/scenarios/
+#docker
+Docker:
+  Enabled: true
+  ContainerName: oocami35029287/marslite_simulation:cuda10
+  RunCmd: source run_docker.sh cuda10
+  ExecCmd: source run_docker.sh same
+##############
+#The launch file you want to launch in order
+# {curSceneItem} is used for rviz visualize scenes.
+# {curMapItem} is used for gazebo scenes.
+# {robot_x}, {robot_y}, {robot_rot} is for robot
+LaunchItems:
+  rviz:
+    Enabled: true
+    Delay: 0
+    Workspace: mars_ws
+    Command: roslaunch pedsim_simulator gym_crowd_environment.launch scene_file:={curSceneItem}.xml 
+  gazebo:
+    Enabled: true
+    Delay: 3
+    Workspace: mars_ws
+    Command: roslaunch pedsim_gazebo_plugin {curMapItem}.launch
+  robot:
+    Enabled: true
+    Delay: 2
+    Workspace: mars_ws
+    Command: roslaunch mars_lite_description spawn_mars.launch robot_init_x:={robot_x} robot_init_y:={robot_y} robot_init_rot:={robot_rot}
+  globalmap:
+    Enabled: true
+    Delay: 2
+    Workspace: mars_ws
+    Command: roslaunch turtlebot3_navigation globalmap.launch map_file:={curMapItem}.yaml
+  initRobotInRviz:
+    Enabled: true
+    Delay: 0
+    Workspace: mars_ws
+    Command: roslaunch mars_lite_description init_pose.launch robot_init_x:={robot_x} robot_init_y:={robot_y} robot_init_rot:={robot_rot}
+  nav(move_base):
+    Enabled: false
+    Delay: 2
+    Workspace: mars_ws
+    Command: roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:={curMapItem}.yaml
+  yolo:
+    Enabled: true
+    Delay: 1
+    Workspace: yolo_ws
+    Command: roslaunch scan yolodetect.launch
+  path_finding:
+    Enabled: true
+    Delay: 10
+    Workspace: yolo_ws
+    Command: roslaunch path_finding astar_path_finding_with_globalmap.launch
+  path_tracking:
+    Enabled: true
+    Delay: 0
+    Workspace: yolo_ws
+    Command: roslaunch path_tracking path_tracking_autonomous.launch
+
+
+######################
+AlignWindows:
+  - Name: Gazebo
+    X: 960
+    Y: 0
+    Width: 960
+    Height: 1080
+  - Name: Rviz
+    X: 0
+    Y: 540
+    Width: 960
+    Height: 540
+  - Name: Yolo demo
+    X: 0
+    Y: 0
+    Width: 960
+    Height: 540

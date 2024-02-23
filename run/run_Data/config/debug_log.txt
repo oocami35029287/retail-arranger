@@ -1,0 +1,13 @@
+Log: /home/lab605/retail_arranger/run/run_Data
+Log: Image loaded and displayed successfully
+Log: XML file created successfully!
+Log: XML file created successfully!
+Log: XML file created successfully!
+Log: XML file created successfully!
+Log: XML file created successfully!
+Log: 1
+Log: Image copied from /home/lab605/retail_arranger/run/run_Data/config/floor_generator/resized_shelf_rectangles.pgm to /home/lab605/socially-store-robot/mars_ws/src/navigation/turtlebot3_navigation/maps/gen_world_1.pgm
+Log: Image copied from /home/lab605/retail_arranger/run/run_Data/config/floor_generator/shelf_rectangles.jpg to /home/lab605/retail_arranger/run/run_Data/config/maps/gen_world_1.jpg
+Log: Image moved successfully.
+Log: File found!
+Log: 0
