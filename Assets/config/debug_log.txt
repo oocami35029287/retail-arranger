@@ -1,0 +1,2 @@
+Log: /home/lab605/retail_arranger/Assets
+Log: Image loaded and displayed successfully
